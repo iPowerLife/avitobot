@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
           minViews,
           minReviews,
           onlyWithPhotos,
-          onlyBusiness,
+          sellerType,
           keywords,
           priceMin,
           priceMax,
