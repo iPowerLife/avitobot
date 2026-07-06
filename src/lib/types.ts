@@ -57,6 +57,12 @@ export interface SearchParams {
   page?: number;
   sort?: 'date' | 'price_asc' | 'price_desc';
   maxPages?: number;
+  minRating?: number;
+  minViews?: number;
+  minReviews?: number;
+  onlyWithPhotos?: boolean;
+  onlyBusiness?: boolean;
+  keywords?: string;
 }
 
 export interface ParseResult {

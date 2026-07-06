@@ -121,9 +121,10 @@ function extractImages($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>): s
     if (!src || seen.has(src)) return;
     // Skip SVGs and icons
     if (src.includes('svg') || src.includes('icon')) return;
-    // Only include Avito CDN images or lazy-loaded images
-    if (src.includes('avito.st') || src.includes('data-src')) {
-      const url = src.startsWith('//') ? `https:${src}` : src;
+    // Convert protocol-relative URLs to https
+    const url = src.startsWith('//') ? `https:${src}` : src;
+    // Include Avito CDN images or any http(s) image (fallback)
+    if (url.includes('avito.st') || url.startsWith('http')) {
       seen.add(url);
       images.push(url);
     }

@@ -73,12 +73,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (keywords) {
-      const keywordList = keywords.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+      const keywordList = keywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
       if (keywordList.length > 0) {
         filteredListings = filteredListings.filter((l) => {
           const titleLower = (l.title || '').toLowerCase();
           const descLower = (l.description || '').toLowerCase();
-          return keywordList.some((kw) => titleLower.includes(kw) || descLower.includes(kw));
+          return keywordList.some((kw: string) => titleLower.includes(kw) || descLower.includes(kw));
         });
       }
     }
