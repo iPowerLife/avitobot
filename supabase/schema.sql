@@ -53,6 +53,16 @@ CREATE TABLE IF NOT EXISTS search_queries (
   executed_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Search sessions table
+CREATE TABLE IF NOT EXISTS search_sessions (
+  id BIGSERIAL PRIMARY KEY,
+  query TEXT NOT NULL,
+  city VARCHAR(100),
+  filters JSONB DEFAULT '{}',
+  results_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_listings_city ON listings(city);
 CREATE INDEX IF NOT EXISTS idx_listings_category ON listings(category);

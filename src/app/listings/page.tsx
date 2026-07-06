@@ -10,6 +10,7 @@ export default function ListingsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [filterCity, setFilterCity] = useState('');
   const [filterSort, setFilterSort] = useState('overall_score');
@@ -24,7 +25,7 @@ export default function ListingsPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '12',
+        limit: '50',
         sort: filterSort,
       });
       if (filterCity) params.set('city', filterCity);
@@ -55,26 +56,62 @@ export default function ListingsPage() {
     }
   }
 
+  async function handleDeleteAll() {
+    if (!confirm('Вы уверены, что хотите удалить ВСЕ объявления? Это действие необратимо!')) return;
+    setIsDeleting(true);
+    try {
+      await fetch('/api/listings?all=true', { method: 'DELETE' });
+      setListings([]);
+      setTotal(0);
+      setPage(1);
+      setTotalPages(1);
+    } catch (error) {
+      console.error('Delete all error:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return (
     <div>
-      <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5', marginBottom: 8 }}>Объявления</h1>
-      <p style={{ color: '#a0a0b0', marginBottom: 24 }}>Все спарсенные объявления ({total})</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5' }}>Объявления</h1>
+        {total > 0 && (
+          <button
+            onClick={handleDeleteAll}
+            disabled={isDeleting}
+            style={{
+              padding: '8px 16px',
+              background: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#ef4444',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 500,
+            }}
+          >
+            {isDeleting ? 'Удаление...' : '🗑 Удалить все'}
+          </button>
+        )}
+      </div>
+      <p style={{ color: '#6a6a7a', marginBottom: 24 }}>Все спарсенные объявления ({total})</p>
 
       <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
         <div>
-          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Город</label>
+          <label style={{ display: 'block', fontSize: 12, color: '#5a5a6a', marginBottom: 4 }}>Город</label>
           <input
             type="text"
             value={filterCity}
             onChange={(e) => setFilterCity(e.target.value)}
             placeholder="Фильтр по городу"
             className="input"
-            style={{ width: 200 }}
+            style={{ width: 180 }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Поиск</label>
+          <label style={{ display: 'block', fontSize: 12, color: '#5a5a6a', marginBottom: 4 }}>Поиск</label>
           <input
             type="text"
             value={filterSearch}
@@ -82,24 +119,26 @@ export default function ListingsPage() {
             onKeyDown={(e) => e.key === 'Enter' && loadListings()}
             placeholder="Поиск по названию..."
             className="input"
-            style={{ width: 200 }}
+            style={{ width: 180 }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Сортировка</label>
+          <label style={{ display: 'block', fontSize: 12, color: '#5a5a6a', marginBottom: 4 }}>Сортировка</label>
           <select
             value={filterSort}
             onChange={(e) => setFilterSort(e.target.value)}
             className="select"
           >
             <option value="overall_score">По оценке</option>
-            <option value="price">По цене ↑</option>
+            <option value="price_asc">Цена ↑</option>
+            <option value="price_desc">Цена ↓</option>
             <option value="date_parsed">По дате</option>
+            <option value="views_count">По просмотрам</option>
           </select>
         </div>
 
-        <button onClick={loadListings} className="btn-primary">
+        <button onClick={loadListings} className="btn-primary" style={{ padding: '10px 20px' }}>
           Обновить
         </button>
       </div>
@@ -110,12 +149,12 @@ export default function ListingsPage() {
           Загрузка...
         </div>
       ) : listings.length === 0 ? (
-        <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: '#6a6a7a' }}>
+        <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: '#5a5a6a' }}>
           Объявления не найдены
         </div>
       ) : (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {listings.map((listing) => (
               <div key={listing.id} style={{ position: 'relative' }}>
                 <ListingCard
@@ -129,49 +168,48 @@ export default function ListingsPage() {
                   }}
                   style={{
                     position: 'absolute',
-                    top: 12,
-                    left: 12,
+                    top: 8,
+                    left: 8,
                     background: 'rgba(239, 68, 68, 0.9)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 6,
-                    padding: 6,
+                    padding: '4px 8px',
                     cursor: 'pointer',
                     opacity: 0,
                     transition: 'opacity 0.2s',
+                    fontSize: 12,
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
                   title="Удалить"
                 >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  ✕
                 </button>
               </div>
             ))}
           </div>
 
           {totalPages > 1 && (
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 32 }}>
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
                 className="btn-primary"
-                style={{ opacity: page === 1 ? 0.5 : 1 }}
+                style={{ opacity: page === 1 ? 0.5 : 1, padding: '8px 16px' }}
               >
-                Назад
+                ←
               </button>
-              <span style={{ padding: '10px 16px', color: '#a0a0b0' }}>
+              <span style={{ padding: '8px 16px', color: '#a0a0b0', fontSize: 14 }}>
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
                 className="btn-primary"
-                style={{ opacity: page === totalPages ? 0.5 : 1 }}
+                style={{ opacity: page === totalPages ? 0.5 : 1, padding: '8px 16px' }}
               >
-                Вперёд
+                →
               </button>
             </div>
           )}

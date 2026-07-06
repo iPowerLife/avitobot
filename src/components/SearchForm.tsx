@@ -27,6 +27,13 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
   const [sort, setSort] = useState<'date' | 'price_asc' | 'price_desc'>('date');
+  const [maxPages, setMaxPages] = useState(3);
+  const [minRating, setMinRating] = useState(0);
+  const [minViews, setMinViews] = useState(0);
+  const [minReviews, setMinReviews] = useState(0);
+  const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
+  const [onlyBusiness, setOnlyBusiness] = useState(false);
+  const [keywords, setKeywords] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +45,13 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
       priceMax: priceMax ? parseInt(priceMax) * 100 : undefined,
       sort,
       page: 1,
+      maxPages,
+      minRating: minRating || undefined,
+      minViews: minViews || undefined,
+      minReviews: minReviews || undefined,
+      onlyWithPhotos: onlyWithPhotos || undefined,
+      onlyBusiness: onlyBusiness || undefined,
+      keywords: keywords || undefined,
     });
   };
 
@@ -116,6 +130,112 @@ export default function SearchForm({ onSearch, isLoading }: SearchFormProps) {
             className="input"
             style={{ width: '100%' }}
           />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, color: '#a0a0b0', marginBottom: 6 }}>
+            Макс. страниц
+          </label>
+          <select
+            value={maxPages}
+            onChange={(e) => setMaxPages(parseInt(e.target.value))}
+            className="select"
+            style={{ width: '100%' }}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, color: '#a0a0b0', marginBottom: 6 }}>
+            Мин. рейтинг
+          </label>
+          <select
+            value={minRating}
+            onChange={(e) => setMinRating(parseFloat(e.target.value))}
+            className="select"
+            style={{ width: '100%' }}
+          >
+            <option value={0}>Все</option>
+            <option value={1}>1+</option>
+            <option value={2}>2+</option>
+            <option value={3}>3+</option>
+            <option value={4}>4+</option>
+            <option value={5}>5</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, color: '#a0a0b0', marginBottom: 6 }}>
+            Мин. просмотров
+          </label>
+          <select
+            value={minViews}
+            onChange={(e) => setMinViews(parseInt(e.target.value))}
+            className="select"
+            style={{ width: '100%' }}
+          >
+            <option value={0}>Все</option>
+            <option value={10}>10+</option>
+            <option value={50}>50+</option>
+            <option value={100}>100+</option>
+            <option value={500}>500+</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, color: '#a0a0b0', marginBottom: 6 }}>
+            Мин. отзывов
+          </label>
+          <select
+            value={minReviews}
+            onChange={(e) => setMinReviews(parseInt(e.target.value))}
+            className="select"
+            style={{ width: '100%' }}
+          >
+            <option value={0}>Все</option>
+            <option value={1}>1+</option>
+            <option value={5}>5+</option>
+            <option value={10}>10+</option>
+            <option value={50}>50+</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: 13, color: '#a0a0b0', marginBottom: 6 }}>
+            Ключевые слова
+          </label>
+          <input
+            type="text"
+            value={keywords}
+            onChange={(e) => setKeywords(e.target.value)}
+            placeholder="Фильтр по словам..."
+            className="input"
+            style={{ width: '100%' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#a0a0b0' }}>
+            <input
+              type="checkbox"
+              checked={onlyWithPhotos}
+              onChange={(e) => setOnlyWithPhotos(e.target.checked)}
+              style={{ width: 16, height: 16 }}
+            />
+            Только с фото
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#a0a0b0' }}>
+            <input
+              type="checkbox"
+              checked={onlyBusiness}
+              onChange={(e) => setOnlyBusiness(e.target.checked)}
+              style={{ width: 16, height: 16 }}
+            />
+            Только бизнес
+          </label>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-end' }}>

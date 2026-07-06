@@ -9,7 +9,20 @@ function isSupabaseConfigured(): boolean {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, city, priceMin, priceMax, sort, maxPages = 3 } = body;
+    const {
+      query,
+      city,
+      priceMin,
+      priceMax,
+      sort,
+      maxPages = 3,
+      minRating,
+      minViews,
+      minReviews,
+      onlyWithPhotos,
+      onlyBusiness,
+      keywords,
+    } = body;
 
     if (!query) {
       return NextResponse.json({ error: 'Query required' }, { status: 400 });
@@ -22,6 +35,7 @@ export async function POST(request: NextRequest) {
       priceMax,
       sort: sort || 'date',
       page: 1,
+      maxPages,
     });
 
     // Analyze each listing
@@ -34,6 +48,40 @@ export async function POST(request: NextRequest) {
         overall_score: analysis.overall_score,
       };
     });
+
+    // Apply filters
+    let filteredListings = analyzedListings;
+
+    if (minRating !== undefined && minRating > 0) {
+      filteredListings = filteredListings.filter((l) => l.seller_rating >= minRating);
+    }
+
+    if (minViews !== undefined && minViews > 0) {
+      filteredListings = filteredListings.filter((l) => l.views_count >= minViews);
+    }
+
+    if (minReviews !== undefined && minReviews > 0) {
+      filteredListings = filteredListings.filter((l) => l.seller_reviews_count >= minReviews);
+    }
+
+    if (onlyWithPhotos) {
+      filteredListings = filteredListings.filter((l) => l.image_count > 0);
+    }
+
+    if (onlyBusiness) {
+      filteredListings = filteredListings.filter((l) => l.seller_type === 'business');
+    }
+
+    if (keywords) {
+      const keywordList = keywords.split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+      if (keywordList.length > 0) {
+        filteredListings = filteredListings.filter((l) => {
+          const titleLower = (l.title || '').toLowerCase();
+          const descLower = (l.description || '').toLowerCase();
+          return keywordList.some((kw) => titleLower.includes(kw) || descLower.includes(kw));
+        });
+      }
+    }
 
     // If Supabase is configured, save to database
     if (isSupabaseConfigured()) {
@@ -105,16 +153,37 @@ export async function POST(request: NextRequest) {
           query,
           city: city || 'Москва',
           category: 'Услуги',
-          results_count: result.listings.length,
+          results_count: filteredListings.length,
+        });
+
+        // Save search session
+        const filters = {
+          minRating,
+          minViews,
+          minReviews,
+          onlyWithPhotos,
+          onlyBusiness,
+          keywords,
+          priceMin,
+          priceMax,
+          sort,
+          maxPages,
+        };
+
+        await supabase.from('search_sessions').insert({
+          query,
+          city: city || 'Москва',
+          filters,
+          results_count: filteredListings.length,
         });
 
         return NextResponse.json({
           success: true,
-          total: result.listings.length,
+          total: filteredListings.length,
           new: newCount,
           updated: savedCount,
           hasMore: result.hasMore,
-          listings: analyzedListings,
+          listings: filteredListings,
         });
       } catch (dbError) {
         console.error('Database error:', dbError);
@@ -125,11 +194,11 @@ export async function POST(request: NextRequest) {
     // Return listings without saving to database
     return NextResponse.json({
       success: true,
-      total: result.listings.length,
-      new: result.listings.length,
+      total: filteredListings.length,
+      new: filteredListings.length,
       updated: 0,
       hasMore: result.hasMore,
-      listings: analyzedListings,
+      listings: filteredListings,
     });
   } catch (error) {
     console.error('Parse error:', error);

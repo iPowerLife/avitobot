@@ -56,6 +56,7 @@ export interface SearchParams {
   priceMax?: number;
   page?: number;
   sort?: 'date' | 'price_asc' | 'price_desc';
+  maxPages?: number;
 }
 
 export interface ParseResult {

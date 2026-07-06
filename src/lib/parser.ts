@@ -114,12 +114,61 @@ function parsePrice(priceText: string): number {
 
 function extractImages($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>): string[] {
   const images: string[] = [];
+  const seen = new Set<string>();
+  
+  // Helper to add image if valid
+  const addImage = (src: string) => {
+    if (!src || seen.has(src)) return;
+    // Skip SVGs and icons
+    if (src.includes('svg') || src.includes('icon')) return;
+    // Only include Avito CDN images or lazy-loaded images
+    if (src.includes('avito.st') || src.includes('data-src')) {
+      const url = src.startsWith('//') ? `https:${src}` : src;
+      seen.add(url);
+      images.push(url);
+    }
+  };
+
+  // 1. Standard selectors
   item.find('img[itemProp="image"], img[data-marker="item-photo/img"]').each((_, el) => {
     const src = $(el).attr('src') || $(el).attr('data-src') || '';
-    if (src && !src.includes('svg') && !src.includes('icon') && src.includes('avito.st')) {
-      images.push(src.startsWith('//') ? `https:${src}` : src);
-    }
+    addImage(src);
   });
+
+  // 2. Lazy loaded images with data-src
+  item.find('img[data-src]').each((_, el) => {
+    const src = $(el).attr('data-src') || '';
+    addImage(src);
+  });
+
+  // 3. Any Avito CDN images (src containing avito.st)
+  item.find('img[src*="avito.st"]').each((_, el) => {
+    const src = $(el).attr('src') || '';
+    addImage(src);
+  });
+
+  // 4. Specific image CDN (img.avito.st)
+  item.find('img[src*="img.avito.st"]').each((_, el) => {
+    const src = $(el).attr('src') || '';
+    addImage(src);
+  });
+
+  // 5. Images inside slider elements
+  item.find('li[data-marker*="slider-image"] img').each((_, el) => {
+    const src = $(el).attr('src') || $(el).attr('data-src') || '';
+    addImage(src);
+  });
+
+  // 6. Fallback: any img with valid src within the card
+  if (images.length === 0) {
+    item.find('img').each((_, el) => {
+      const src = $(el).attr('src') || '';
+      if (src && src.startsWith('http')) {
+        addImage(src);
+      }
+    });
+  }
+
   return images;
 }
 
@@ -164,7 +213,9 @@ function parseListingFromSearch($: cheerio.CheerioAPI, item: cheerio.Cheerio<Any
     const priceEl = item.find('[itemProp="price"]');
     const priceContent = priceEl.attr('content') || '';
     const priceText = priceContent || item.find('[data-marker="item-price"]').text().trim() || '0';
-    const price = parseInt(priceContent, 10) || parsePrice(priceText);
+    // priceContent is in kopecks (integer), so divide by 100 to get rubles
+    const priceKopecks = parseInt(priceContent, 10);
+    const price = priceKopecks ? Math.round(priceKopecks / 100) : parsePrice(priceText);
 
     // Description snippet (first paragraph in the card)
     const descEl = item.find('p').filter((_, el) => {
@@ -186,11 +237,33 @@ function parseListingFromSearch($: cheerio.CheerioAPI, item: cheerio.Cheerio<Any
     const dateText = dateEl.text().trim() || '';
     const dateAttr = dateEl.attr('datetime') || '';
 
-    // Views count
+    // Views count - try multiple selectors and text patterns
+    let viewsCount = 0;
+
+    // 1. Try direct data-marker selector
     const viewsEl = item.find('[data-marker="item-views"]');
-    const viewsText = viewsEl.text().trim() || '0';
-    const viewsMatch = viewsText.match(/(\d+)/);
-    const viewsCount = viewsMatch ? parseInt(viewsMatch[1], 10) : 0;
+    if (viewsEl.length) {
+      const viewsText = viewsEl.text().trim();
+      const viewsMatch = viewsText.match(/(\d+)/);
+      if (viewsMatch) viewsCount = parseInt(viewsMatch[1], 10);
+    }
+
+    // 2. Try data-marker containing 'view'
+    if (viewsCount === 0) {
+      const viewsEl2 = item.find('[data-marker*="view"]');
+      if (viewsEl2.length) {
+        const viewsText = viewsEl2.text().trim();
+        const viewsMatch = viewsText.match(/(\d+)/);
+        if (viewsMatch) viewsCount = parseInt(viewsMatch[1], 10);
+      }
+    }
+
+    // 3. Try text containing 'просмотр' or 'просм'
+    if (viewsCount === 0) {
+      const fullText = item.text();
+      const viewsMatch = fullText.match(/(\d+)\s*(?:просмотр|просм)/i);
+      if (viewsMatch) viewsCount = parseInt(viewsMatch[1], 10);
+    }
 
     // Seller info
     const seller = extractSellerInfo($, item);
@@ -268,11 +341,72 @@ function parseSearchPage(html: string, page: number): ParseResult {
 }
 
 export async function searchListings(params: SearchParams): Promise<ParseResult> {
-  const { query, city, category, priceMin, priceMax, page = 1, sort } = params;
+  const { query, city, category, priceMin, priceMax, page = 1, sort, maxPages } = params;
 
   const citySlug = city ? normalizeCity(city) : '';
   const categorySlug = category ? normalizeCategory(category) : 'uslugi';
 
+  // If maxPages is specified, fetch multiple pages
+  if (maxPages && maxPages > 1) {
+    const allListings: Listing[] = [];
+    let lastResult: ParseResult | null = null;
+    let totalFromFirstPage = 0;
+
+    for (let currentPage = 1; currentPage <= maxPages; currentPage++) {
+      try {
+        // Build URL for current page
+        let pageUrl = 'https://www.avito.ru';
+        if (citySlug) pageUrl += `/${citySlug}`;
+        if (categorySlug) pageUrl += `/${categorySlug}`;
+
+        const searchParams = new URLSearchParams();
+        if (query) searchParams.set('q', query);
+        if (currentPage > 1) searchParams.set('p', currentPage.toString());
+        if (priceMin) searchParams.set('priceMin', priceMin.toString());
+        if (priceMax) searchParams.set('priceMax', priceMax.toString());
+        if (sort === 'price_asc') searchParams.set('s', '104');
+        else if (sort === 'price_desc') searchParams.set('s', '101');
+        else if (sort === 'date') searchParams.set('s', '102');
+
+        const queryString = searchParams.toString();
+        if (queryString) pageUrl += `?${queryString}`;
+
+        console.log(`[Parser] Fetching page ${currentPage}: ${pageUrl}`);
+        const html = await fetchWithRetry(pageUrl);
+        console.log(`[Parser] Got ${html.length} bytes for page ${currentPage}`);
+        await randomDelay();
+
+        const result = parseSearchPage(html, currentPage);
+        allListings.push(...result.listings);
+
+        if (currentPage === 1) {
+          totalFromFirstPage = result.total;
+        }
+
+        console.log(`[Parser] Found ${result.listings.length} listings on page ${currentPage}`);
+
+        // Stop if no more pages
+        if (!result.hasMore) {
+          lastResult = result;
+          break;
+        }
+
+        lastResult = result;
+      } catch (error) {
+        if (currentPage > 1) break;
+        throw error;
+      }
+    }
+
+    return {
+      listings: allListings,
+      total: totalFromFirstPage || allListings.length,
+      page: maxPages,
+      hasMore: lastResult ? lastResult.hasMore : false,
+    };
+  }
+
+  // Single page fetch (original behavior)
   let url = 'https://www.avito.ru';
   if (citySlug) url += `/${citySlug}`;
   if (categorySlug) url += `/${categorySlug}`;
@@ -314,19 +448,6 @@ export async function parseAll(params: {
   maxPages?: number;
 }): Promise<Listing[]> {
   const { query, city, maxPages = 3 } = params;
-  const allListings: Listing[] = [];
-
-  for (let page = 1; page <= maxPages; page++) {
-    try {
-      const result = await searchListings({ query, city, page });
-      allListings.push(...result.listings);
-      if (!result.hasMore || page < maxPages) await randomDelay();
-      if (!result.hasMore) break;
-    } catch (error) {
-      if (page > 1) break;
-      throw error;
-    }
-  }
-
-  return allListings;
+  const result = await searchListings({ query, city, maxPages });
+  return result.listings;
 }

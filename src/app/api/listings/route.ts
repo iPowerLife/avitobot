@@ -11,9 +11,12 @@ export async function GET(request: NextRequest) {
     const priceMax = searchParams.get('priceMax');
     const sort = searchParams.get('sort') || 'date_parsed';
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status') || 'active';
     const search = searchParams.get('search');
+    const minRating = searchParams.get('minRating');
+    const minViews = searchParams.get('minViews');
+    const minReviews = searchParams.get('minReviews');
 
     let query = getSupabase()
       .from('listings')
@@ -24,17 +27,27 @@ export async function GET(request: NextRequest) {
     if (category) query = query.ilike('category', `%${category}%`);
     if (priceMin) query = query.gte('price', parseInt(priceMin));
     if (priceMax) query = query.lte('price', parseInt(priceMax));
+    if (minRating) query = query.gte('seller_rating', parseFloat(minRating));
+    if (minViews) query = query.gte('views_count', parseInt(minViews));
+    if (minReviews) query = query.gte('seller_reviews_count', parseInt(minReviews));
     if (search) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
+
+    // Determine sort column
+    let sortColumn = 'date_parsed';
+    let ascending = false;
+    if (sort === 'price_asc') { sortColumn = 'price'; ascending = true; }
+    else if (sort === 'price_desc') { sortColumn = 'price'; ascending = false; }
+    else if (sort === 'overall_score') { sortColumn = 'overall_score'; ascending = false; }
+    else if (sort === 'views_count') { sortColumn = 'views_count'; ascending = false; }
+    else if (sort === 'date_parsed') { sortColumn = 'date_parsed'; ascending = false; }
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
     const { data, count, error } = await query
-      .order(sort === 'date' ? 'date_parsed' : sort === 'price_asc' || sort === 'price_desc' ? 'price' : 'overall_score', {
-        ascending: sort === 'price_asc',
-      })
+      .order(sortColumn, { ascending })
       .range(from, to);
 
     if (error) throw error;
@@ -58,7 +71,27 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    const all = searchParams.get('all');
 
+    // Delete all listings
+    if (all === 'true') {
+      const { error } = await getSupabase()
+        .from('listings')
+        .delete()
+        .neq('id', 0); // Delete all rows
+
+      if (error) throw error;
+
+      // Also delete price history
+      await getSupabase()
+        .from('price_history')
+        .delete()
+        .neq('id', 0);
+
+      return NextResponse.json({ success: true, deleted: 'all' });
+    }
+
+    // Delete single listing
     if (!id) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 });
     }
