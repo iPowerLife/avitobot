@@ -14,9 +14,7 @@ export default function ListingDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0);
 
   useEffect(() => {
-    if (params.id) {
-      loadListing(params.id as string);
-    }
+    if (params.id) loadListing(params.id as string);
   }, [params.id]);
 
   async function loadListing(id: string) {
@@ -54,51 +52,61 @@ export default function ListingDetailPage() {
     }
   }
 
+  function formatDate(dateStr: string): string {
+    if (!dateStr) return 'Неизвестно';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  }
+
+  function renderStars(rating: number): string {
+    if (rating === 0) return '';
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5 ? 1 : 0;
+    const empty = 5 - full - half;
+    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+  }
+
   if (isLoading) {
-    return (
-      <div className="text-center py-12 text-gray-500">Загрузка...</div>
-    );
+    return <div style={{ textAlign: 'center', padding: '48px 0', color: '#6a6a7a' }}><div className="spinner" style={{ margin: '0 auto' }} /></div>;
   }
 
   if (!listing) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        Объявление не найдено
-      </div>
-    );
+    return <div style={{ textAlign: 'center', padding: '48px 0', color: '#6a6a7a' }}>Объявление не найдено</div>;
   }
 
   return (
     <div>
-      <button
-        onClick={() => router.back()}
-        className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-1"
-      >
+      <button onClick={() => router.back()} style={{ marginBottom: 16, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>
         ← Назад
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24 }}>
+        {/* Left column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Gallery */}
           {listing.images && listing.images.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="h-96 bg-gray-200">
-                <img
-                  src={listing.images[selectedImage]}
-                  alt={listing.title}
-                  className="w-full h-full object-contain"
-                />
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ height: 400, background: '#12121a' }}>
+                <img src={listing.images[selectedImage]} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               {listing.images.length > 1 && (
-                <div className="flex gap-2 p-4 overflow-x-auto">
+                <div style={{ display: 'flex', gap: 8, padding: 12, overflowX: 'auto' }}>
                   {listing.images.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                        selectedImage === i ? 'border-blue-500' : 'border-transparent'
-                      }`}
+                      style={{
+                        flexShrink: 0, width: 72, height: 72, borderRadius: 8, overflow: 'hidden',
+                        border: selectedImage === i ? '2px solid #3b82f6' : '2px solid transparent',
+                        cursor: 'pointer', padding: 0, background: 'none',
+                      }}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </button>
                   ))}
                 </div>
@@ -106,141 +114,147 @@ export default function ListingDetailPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{listing.title}</h1>
+          {/* Title + Price */}
+          <div className="card" style={{ padding: 24 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f0f0f5', marginBottom: 12 }}>{listing.title}</h1>
 
-            <div className="flex items-center gap-4 mb-4">
-              <span className="text-3xl font-bold text-blue-600">
-                {new Intl.NumberFormat('ru-RU').format(listing.price / 100)} ₽
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+              <span style={{ fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>
+                {listing.price > 0 ? `${new Intl.NumberFormat('ru-RU').format(listing.price)} ₽` : 'Договорная'}
               </span>
               {listing.overall_score > 0 && (
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                  listing.overall_score >= 8 ? 'bg-green-100 text-green-700' :
-                  listing.overall_score >= 6 ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
+                <span className={listing.overall_score >= 7 ? 'badge badge-green' : listing.overall_score >= 5 ? 'badge badge-yellow' : 'badge badge-red'}>
                   Оценка: {listing.overall_score.toFixed(1)}/10
                 </span>
               )}
             </div>
 
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, fontSize: 14, color: '#a0a0b0' }}>
               <span>📍 {listing.city}{listing.district ? `, ${listing.district}` : ''}</span>
-              <span>👤 {listing.seller_name || 'Неизвестно'}</span>
-              <span className={listing.seller_type === 'business' ? 'text-blue-600 font-medium' : ''}>
-                {listing.seller_type === 'business' ? '🏢 Бизнес' : '👤 Частное лицо'}
-              </span>
-              {listing.date_created && (
-                <span>📅 {new Date(listing.date_created).toLocaleDateString('ru-RU')}</span>
-              )}
+              {listing.date_created && <span>📅 {formatDate(listing.date_created)}</span>}
+              {listing.views_count > 0 && <span>👁 {listing.views_count} просм.</span>}
+              {listing.image_count > 0 && <span>📷 {listing.image_count} фото</span>}
             </div>
-
-            {listing.description && (
-              <div className="prose prose-sm max-w-none">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Описание</h3>
-                <p className="text-gray-700 whitespace-pre-wrap">{listing.description}</p>
-              </div>
-            )}
-
-            {listing.url && (
-              <a
-                href={listing.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
-              >
-                Открыть на Авито →
-              </a>
-            )}
           </div>
+
+          {/* Description */}
+          {listing.description && (
+            <div className="card" style={{ padding: 24 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f5', marginBottom: 12 }}>Описание</h3>
+              <p style={{ color: '#a0a0b0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{listing.description}</p>
+            </div>
+          )}
+
+          {/* Link to Avito */}
+          {listing.url && (
+            <a href={listing.url} target="_blank" rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '12px 20px', background: '#ff6600', color: 'white',
+                borderRadius: 8, textDecoration: 'none', fontWeight: 500, width: 'fit-content',
+              }}>
+              Открыть на Авито →
+            </a>
+          )}
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Оценки</h3>
+        {/* Right column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Seller card */}
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>Продавец</h3>
 
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Качество текста</span>
-                  <span className="font-medium">{((listing.text_quality_score || 0) * 100).toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: `${(listing.text_quality_score || 0) * 100}%` }}
-                  />
-                </div>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {listing.seller_url ? (
+                <a href={listing.seller_url} target="_blank" rel="noopener noreferrer"
+                  style={{ color: '#3b82f6', textDecoration: 'none', fontWeight: 500, fontSize: 16 }}>
+                  {listing.seller_name || 'Продавец'}
+                </a>
+              ) : (
+                <span style={{ color: '#f0f0f5', fontWeight: 500, fontSize: 16 }}>{listing.seller_name || 'Продавец'}</span>
+              )}
 
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Качество фото</span>
-                  <span className="font-medium">{((listing.image_quality_score || 0) * 100).toFixed(0)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: `${(listing.image_quality_score || 0) * 100}%` }}
-                  />
-                </div>
-              </div>
+              <span className={listing.seller_type === 'business' ? 'badge badge-blue' : 'badge badge-purple'} style={{ width: 'fit-content' }}>
+                {listing.seller_type === 'business' ? 'Бизнес' : 'Частное лицо'}
+              </span>
 
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Уникальность</span>
-                  <span className="font-medium">{((listing.uniqueness_score || 0) * 100).toFixed(0)}%</span>
+              {listing.seller_rating > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#eab308', fontSize: 16 }}>{renderStars(listing.seller_rating)}</span>
+                  <span style={{ color: '#a0a0b0', fontSize: 14 }}>{listing.seller_rating}</span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full"
-                    style={{ width: `${(listing.uniqueness_score || 0) * 100}%` }}
-                  />
+              )}
+
+              {listing.seller_reviews_count > 0 && (
+                <span style={{ color: '#6a6a7a', fontSize: 13 }}>
+                  {listing.seller_reviews_count} отзывов
+                </span>
+              )}
+
+              {listing.seller_id && (
+                <a href={`https://www.avito.ru/all/profile/${listing.seller_id}`}
+                  target="_blank" rel="noopener noreferrer"
+                  style={{ color: '#3b82f6', fontSize: 13, textDecoration: 'none' }}>
+                  Все объявления продавца →
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Scores */}
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>Оценки</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {[
+                { label: 'Качество текста', value: listing.text_quality_score, color: '#3b82f6' },
+                { label: 'Качество фото', value: listing.image_quality_score, color: '#22c55e' },
+                { label: 'Уникальность', value: listing.uniqueness_score, color: '#a855f7' },
+              ].map(({ label, value, color }) => (
+                <div key={label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}>
+                    <span style={{ color: '#6a6a7a' }}>{label}</span>
+                    <span style={{ color: '#a0a0b0' }}>{((value || 0) * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="progress-bar">
+                    <div className="progress-bar-fill" style={{ width: `${(value || 0) * 100}%`, background: color }} />
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
 
-            <button
-              onClick={handleAnalyze}
-              className="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-            >
+            <button onClick={handleAnalyze} style={{
+              marginTop: 16, width: '100%', padding: '10px 16px',
+              background: '#1a1a25', border: '1px solid #2a2a3a', borderRadius: 8,
+              color: '#a0a0b0', cursor: 'pointer', fontSize: 13,
+            }}>
               Пересчитать оценку
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Информация</h3>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-600">ID Авито:</dt>
-                <dd className="font-mono text-gray-900">{listing.avito_id}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">Фото:</dt>
-                <dd className="text-gray-900">{listing.image_count || listing.images?.length || 0}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">Статус:</dt>
-                <dd className="text-gray-900">{listing.status}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-600">Спарсено:</dt>
-                <dd className="text-gray-900">{new Date(listing.date_parsed).toLocaleString('ru-RU')}</dd>
-              </div>
-              {listing.address && (
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Адрес:</dt>
-                  <dd className="text-gray-900 text-right max-w-[200px] truncate">{listing.address}</dd>
+          {/* Meta info */}
+          <div className="card" style={{ padding: 20 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>Информация</h3>
+            <dl style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+              {[
+                { label: 'ID Авито', value: listing.avito_id },
+                { label: 'Фото', value: listing.image_count || listing.images?.length || 0 },
+                { label: 'Просмотры', value: listing.views_count || '—' },
+                { label: 'Статус', value: listing.status },
+                { label: 'Размещено', value: formatDate(listing.date_created) },
+                { label: 'Спарсено', value: new Date(listing.date_parsed).toLocaleString('ru-RU') },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <dt style={{ color: '#6a6a7a' }}>{label}:</dt>
+                  <dd style={{ color: '#a0a0b0' }}>{value}</dd>
                 </div>
-              )}
+              ))}
             </dl>
           </div>
 
+          {/* Price history */}
           {priceHistory.length > 0 && (
-            <PriceChart
-              data={priceHistory.map((h) => ({ date: h.recorded_at, price: h.price }))}
-              title="История цены"
-            />
+            <PriceChart data={priceHistory.map((h) => ({ date: h.recorded_at, price: h.price }))} title="История цены" />
           )}
         </div>
       </div>

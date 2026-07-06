@@ -13,9 +13,13 @@ export interface Listing {
   seller_id: string;
   seller_name: string;
   seller_type: 'private' | 'business';
+  seller_url: string;
+  seller_rating: number;
+  seller_reviews_count: number;
   url: string;
   images: string[];
   image_count: number;
+  views_count: number;
   date_created: string;
   date_parsed: string;
   date_updated: string;
@@ -24,9 +28,6 @@ export interface Listing {
   uniqueness_score: number;
   image_quality_score: number;
   overall_score: number;
-  views_estimate: number;
-  favorites_count: number;
-  response_time: string;
   created_at: string;
   updated_at: string;
 }

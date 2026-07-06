@@ -40,7 +40,7 @@ const CATEGORY_MAP: Record<string, string> = {
   'недвижимость': 'nedvizhimost',
   'транспорт': 'transport',
   'работа': 'rabota',
-  'электроника': 'elektronika',
+  'электроника': 'elektronика',
 };
 
 const requestTimestamps: number[] = [];
@@ -97,16 +97,11 @@ async function fetchWithRetry(url: string, retries = 3): Promise<string> {
           'Cache-Control': 'no-cache',
         },
       });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       return await response.text();
     } catch (error) {
-      if (attempt < retries) {
-        await delay(attempt * 2000);
-      } else {
-        throw error;
-      }
+      if (attempt < retries) await delay(attempt * 2000);
+      else throw error;
     }
   }
   throw new Error('Max retries exceeded');
@@ -114,7 +109,7 @@ async function fetchWithRetry(url: string, retries = 3): Promise<string> {
 
 function parsePrice(priceText: string): number {
   const cleaned = priceText.replace(/[^\d]/g, '');
-  return cleaned ? parseInt(cleaned, 10) * 100 : 0;
+  return cleaned ? parseInt(cleaned, 10) : 0;
 }
 
 function extractImages($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>): string[] {
@@ -128,66 +123,107 @@ function extractImages($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>): s
   return images;
 }
 
+function extractSellerInfo($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>) {
+  // Seller name and profile URL
+  const sellerLink = item.find('a[data-marker="item-link"]');
+  const sellerName = sellerLink.text().trim() || '';
+  const sellerHref = sellerLink.attr('href') || '';
+  const sellerUrl = sellerHref ? `https://www.avito.ru${sellerHref}` : '';
+
+  // Extract seller ID from URL pattern /i{NUMBER}
+  const sellerIdMatch = sellerHref.match(/\/i(\d+)/);
+  const sellerId = sellerIdMatch ? sellerIdMatch[1] : '';
+
+  // Seller rating
+  const ratingText = item.find('[data-marker="seller-rating/score"]').text().trim();
+  const sellerRating = ratingText ? parseFloat(ratingText.replace(',', '.')) : 0;
+
+  // Reviews count
+  const reviewsText = item.find('[data-marker="seller-rating/reviews"]').text().trim();
+  const reviewsMatch = reviewsText.match(/(\d+)/);
+  const sellerReviewsCount = reviewsMatch ? parseInt(reviewsMatch[1], 10) : 0;
+
+  return { sellerName, sellerUrl, sellerId, sellerRating, sellerReviewsCount };
+}
+
 function parseListingFromSearch($: cheerio.CheerioAPI, item: cheerio.Cheerio<AnyNode>): Listing | null {
   try {
-    // Item ID from data-item-id attribute
     const avitoId = item.attr('data-item-id') || '';
     if (!avitoId) return null;
 
-    // Title from a[data-marker="item-title"]
+    // Title
     const titleEl = item.find('a[data-marker="item-title"]');
     const title = titleEl.attr('title') || titleEl.text().trim() || '';
+    if (!title) return null;
 
     // URL
     const href = titleEl.attr('href') || '';
     const url = href.startsWith('http') ? href : `https://www.avito.ru${href.split('?')[0]}`;
 
     // Price
-    const priceEl = item.find('[itemProp="price"], [data-marker="item-price"]');
-    const priceContent = priceEl.attr('content') || priceEl.text().trim() || '0';
-    const price = parseInt(priceContent, 10) || parsePrice(priceContent);
+    const priceEl = item.find('[itemProp="price"]');
+    const priceContent = priceEl.attr('content') || '';
+    const priceText = priceContent || item.find('[data-marker="item-price"]').text().trim() || '0';
+    const price = parseInt(priceContent, 10) || parsePrice(priceText);
+
+    // Description snippet (first paragraph in the card)
+    const descEl = item.find('p').filter((_, el) => {
+      const text = $(el).text();
+      return text.length > 20 && !text.includes('Продвинуто') && !text.includes('Загрузка');
+    }).first();
+    const description = descEl.text().trim() || '';
 
     // Location
-    const locationEl = item.find('[data-marker="item-address"], [itemProp="availableAtOrFrom"]');
+    const locationEl = item.find('[data-marker="item-address"]');
     const locationText = locationEl.text().trim() || '';
     const locationParts = locationText.split(',').map((s: string) => s.trim());
 
     // Images
     const images = extractImages($, item);
 
-    // Description snippet
-    const descEl = item.find('p, [data-marker="item-snippet"]');
-    const description = descEl.first().text().trim() || '';
+    // Date info
+    const dateEl = item.find('[data-marker="item-date"], time');
+    const dateText = dateEl.text().trim() || '';
+    const dateAttr = dateEl.attr('datetime') || '';
+
+    // Views count
+    const viewsEl = item.find('[data-marker="item-views"]');
+    const viewsText = viewsEl.text().trim() || '0';
+    const viewsMatch = viewsText.match(/(\d+)/);
+    const viewsCount = viewsMatch ? parseInt(viewsMatch[1], 10) : 0;
 
     // Seller info
-    const sellerNameEl = item.find('a[data-marker="item-link"], [data-marker="seller-name"]');
-    const sellerName = sellerNameEl.text().trim() || '';
+    const seller = extractSellerInfo($, item);
 
-    // Seller type
-    const sellerTypeText = item.find('[data-marker="seller-label"], [data-marker="business-label"]').text();
-    const sellerType: 'private' | 'business' = sellerTypeText.includes('Бизнес') ? 'business' : 'private';
-
-    // Seller rating
-    const ratingText = item.find('[data-marker="seller-rating/score"]').text().trim();
+    // Determine seller type
+    const sellerTypeEl = item.find('[data-marker="business-label"], [data-marker="seller-label"]');
+    const sellerTypeText = sellerTypeEl.text().trim();
+    const sellerType: 'private' | 'business' =
+      sellerTypeText.includes('Бизнес') || sellerTypeText.includes('ООО') || sellerTypeText.includes('ИП')
+        ? 'business' : 'private';
 
     return {
       avito_id: avitoId,
       title,
       description,
       price: price || 0,
-      price_formatted: price ? `${price} ₽` : 'Договорная',
+      price_formatted: price ? `${new Intl.NumberFormat('ru-RU').format(price)} ₽` : 'Договорная',
       city: locationParts[0] || '',
       district: locationParts[1] || '',
       address: locationText,
       category: '',
       subcategory: '',
-      seller_id: '',
-      seller_name: sellerName,
+      seller_id: seller.sellerId,
+      seller_name: seller.sellerName,
       seller_type: sellerType,
+      seller_url: seller.sellerUrl,
+      seller_rating: seller.sellerRating,
+      seller_reviews_count: seller.sellerReviewsCount,
       url,
       images,
       image_count: images.length,
-      date_created: '',
+      views_count: viewsCount,
+      date_created: dateAttr || dateText || new Date().toISOString(),
       date_parsed: new Date().toISOString(),
       date_updated: new Date().toISOString(),
       status: 'active',
@@ -195,9 +231,6 @@ function parseListingFromSearch($: cheerio.CheerioAPI, item: cheerio.Cheerio<Any
       uniqueness_score: 0,
       image_quality_score: 0,
       overall_score: 0,
-      views_estimate: 0,
-      favorites_count: 0,
-      response_time: '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -210,22 +243,19 @@ function parseSearchPage(html: string, page: number): ParseResult {
   const $ = cheerio.load(html);
   const listings: Listing[] = [];
 
-  // Avito uses div[data-marker="item"] for each listing
   const items = $('div[data-marker="item"]');
 
   items.each((_, element) => {
     const listing = parseListingFromSearch($, $(element));
-    if (listing && listing.title) {
+    if (listing) {
       listings.push(listing);
     }
   });
 
-  // Try to get total count from search-found-count or page title
   const totalText = $('[data-marker="search-found-count"]').text().trim() ||
     $('h1').first().text().match(/(\d+)/)?.[1] || '0';
   const total = parseInt(totalText, 10) || listings.length;
 
-  // Check for "next page" link
   const hasNext = $('a[data-marker="pagination-button/next"]').length > 0 ||
     $('a[rel="next"]').length > 0;
 
@@ -261,7 +291,7 @@ export async function searchListings(params: SearchParams): Promise<ParseResult>
 
   console.log(`[Parser] Fetching: ${url}`);
   const html = await fetchWithRetry(url);
-  console.log(`[Parser] Got ${html.length} bytes of HTML`);
+  console.log(`[Parser] Got ${html.length} bytes`);
   await randomDelay();
 
   const result = parseSearchPage(html, page);
@@ -272,10 +302,10 @@ export async function searchListings(params: SearchParams): Promise<ParseResult>
 
 export async function getListingDetails(avitoId: string): Promise<Listing> {
   const url = `https://www.avito.ru/all/item/${avitoId}`;
-  console.log(`[Parser] Fetching listing: ${url}`);
   const html = await fetchWithRetry(url);
   await randomDelay();
-  return parseSearchPage(html, 1).listings[0] || ({} as Listing);
+  const result = parseSearchPage(html, 1);
+  return result.listings[0] || ({} as Listing);
 }
 
 export async function parseAll(params: {
