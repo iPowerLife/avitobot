@@ -61,7 +61,7 @@ export interface SearchParams {
   minViews?: number;
   minReviews?: number;
   onlyWithPhotos?: boolean;
-  onlyBusiness?: boolean;
+  sellerType?: 'private' | 'business' | 'all';
   keywords?: string;
 }
 

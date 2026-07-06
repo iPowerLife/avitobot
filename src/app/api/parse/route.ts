@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       minViews,
       minReviews,
       onlyWithPhotos,
-      onlyBusiness,
+      sellerType,
       keywords,
     } = body;
 
@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       filteredListings = filteredListings.filter((l) => l.image_count > 0);
     }
 
-    if (onlyBusiness) {
-      filteredListings = filteredListings.filter((l) => l.seller_type === 'business');
+    if (sellerType && sellerType !== 'all') {
+      filteredListings = filteredListings.filter((l) => l.seller_type === sellerType);
     }
 
     if (keywords) {
