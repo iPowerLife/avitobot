@@ -8,10 +8,7 @@ export const metadata: Metadata = {
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <a
-      href={href}
-      className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-100 transition-colors"
-    >
+    <a href={href} className="nav-link">
       {children}
     </a>
   );
@@ -24,31 +21,57 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body className="bg-gray-100 min-h-screen">
-        <nav className="bg-white shadow-sm border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <span className="text-xl font-bold text-gray-900">AvitoBot</span>
+      <body>
+        <nav style={{
+          background: '#12121a',
+          borderBottom: '1px solid #2a2a3a',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+        }}>
+          <div style={{
+            maxWidth: 1280,
+            margin: '0 auto',
+            padding: '0 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            height: 64,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                borderRadius: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
+              <span style={{ fontSize: 20, fontWeight: 700, color: '#f0f0f5' }}>
+                AvitoBot
+              </span>
+            </div>
 
-              <div className="flex items-center gap-1">
-                <NavLink href="/">Главная</NavLink>
-                <NavLink href="/search">Поиск</NavLink>
-                <NavLink href="/listings">Объявления</NavLink>
-                <NavLink href="/analytics">Аналитика</NavLink>
-                <NavLink href="/export">Экспорт</NavLink>
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <NavLink href="/">Главная</NavLink>
+              <NavLink href="/search">Поиск</NavLink>
+              <NavLink href="/listings">Объявления</NavLink>
+              <NavLink href="/analytics">Аналитика</NavLink>
+              <NavLink href="/export">Экспорт</NavLink>
             </div>
           </div>
         </nav>
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '32px 24px',
+        }}>
           {children}
         </main>
       </body>

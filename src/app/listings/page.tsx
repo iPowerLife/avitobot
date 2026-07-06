@@ -57,39 +57,41 @@ export default function ListingsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Объявления</h1>
-      <p className="text-gray-600 mb-6">Все спарсенные объявления ({total})</p>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5', marginBottom: 8 }}>Объявления</h1>
+      <p style={{ color: '#a0a0b0', marginBottom: 24 }}>Все спарсенные объявления ({total})</p>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Город</label>
+          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Город</label>
           <input
             type="text"
             value={filterCity}
             onChange={(e) => setFilterCity(e.target.value)}
             placeholder="Фильтр по городу"
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="input"
+            style={{ width: 200 }}
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Поиск</label>
+          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Поиск</label>
           <input
             type="text"
             value={filterSearch}
             onChange={(e) => setFilterSearch(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && loadListings()}
             placeholder="Поиск по названию..."
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="input"
+            style={{ width: 200 }}
           />
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Сортировка</label>
+          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Сортировка</label>
           <select
             value={filterSort}
             onChange={(e) => setFilterSort(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="select"
           >
             <option value="overall_score">По оценке</option>
             <option value="price">По цене ↑</option>
@@ -97,25 +99,25 @@ export default function ListingsPage() {
           </select>
         </div>
 
-        <button
-          onClick={loadListings}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-        >
+        <button onClick={loadListings} className="btn-primary">
           Обновить
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Загрузка...</div>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: '#6a6a7a' }}>
+          <div className="spinner" style={{ margin: '0 auto 16px' }} />
+          Загрузка...
+        </div>
       ) : listings.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center text-gray-500">
+        <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: '#6a6a7a' }}>
           Объявления не найдены
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
             {listings.map((listing) => (
-              <div key={listing.id} className="relative">
+              <div key={listing.id} style={{ position: 'relative' }}>
                 <ListingCard
                   listing={listing}
                   onClick={() => window.location.href = `/listings/${listing.id}`}
@@ -125,10 +127,24 @@ export default function ListingsPage() {
                     e.stopPropagation();
                     handleDelete(listing.id!);
                   }}
-                  className="absolute top-2 left-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    position: 'absolute',
+                    top: 12,
+                    left: 12,
+                    background: 'rgba(239, 68, 68, 0.9)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: 6,
+                    cursor: 'pointer',
+                    opacity: 0,
+                    transition: 'opacity 0.2s',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
                   title="Удалить"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -137,21 +153,23 @@ export default function ListingsPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-8">
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 32 }}>
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="btn-primary"
+                style={{ opacity: page === 1 ? 0.5 : 1 }}
               >
                 Назад
               </button>
-              <span className="px-4 py-2 text-gray-600">
+              <span style={{ padding: '10px 16px', color: '#a0a0b0' }}>
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="btn-primary"
+                style={{ opacity: page === totalPages ? 0.5 : 1 }}
               >
                 Вперёд
               </button>

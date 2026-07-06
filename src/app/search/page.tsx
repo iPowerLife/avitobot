@@ -15,6 +15,7 @@ export default function SearchPage() {
     setIsLoading(true);
     setError(null);
     setResultInfo(null);
+    setListings([]);
 
     try {
       const res = await fetch('/api/parse', {
@@ -35,11 +36,17 @@ export default function SearchPage() {
         updated: data.updated,
       });
 
-      const listingsRes = await fetch(
-        `/api/listings?search=${encodeURIComponent(params.query)}&city=${params.city || ''}&limit=50`
-      );
-      const listingsData = await listingsRes.json();
-      setListings(listingsData.listings || []);
+      // Use listings from response directly (works without DB)
+      if (data.listings && data.listings.length > 0) {
+        setListings(data.listings);
+      } else {
+        // Fallback: fetch from database
+        const listingsRes = await fetch(
+          `/api/listings?search=${encodeURIComponent(params.query)}&city=${params.city || ''}&limit=50`
+        );
+        const listingsData = await listingsRes.json();
+        setListings(listingsData.listings || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка');
     } finally {
@@ -49,21 +56,35 @@ export default function SearchPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Поиск объявлений</h1>
-      <p className="text-gray-600 mb-6">
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5', marginBottom: 8 }}>Поиск объявлений</h1>
+      <p style={{ color: '#a0a0b0', marginBottom: 24 }}>
         Введите запрос для парсинга объявлений Авито
       </p>
 
       <SearchForm onSearch={handleSearch} isLoading={isLoading} />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          color: '#ef4444',
+          padding: '12px 16px',
+          borderRadius: 10,
+          marginBottom: 24,
+        }}>
           {error}
         </div>
       )}
 
       {resultInfo && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6">
+        <div style={{
+          background: 'rgba(34, 197, 94, 0.1)',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
+          color: '#22c55e',
+          padding: '12px 16px',
+          borderRadius: 10,
+          marginBottom: 24,
+        }}>
           <strong>Результат:</strong> Найдено {resultInfo.total} объявлений.{' '}
           Новых: {resultInfo.new}, Обновлено: {resultInfo.updated}
         </div>
@@ -71,15 +92,15 @@ export default function SearchPage() {
 
       {listings.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>
             Результаты ({listings.length})
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
             {listings.map((listing) => (
               <ListingCard
                 key={listing.id || listing.avito_id}
                 listing={listing}
-                onClick={() => window.location.href = `/listings/${listing.id}`}
+                onClick={() => listing.id ? window.location.href = `/listings/${listing.id}` : window.open(listing.url, '_blank')}
               />
             ))}
           </div>
@@ -87,9 +108,9 @@ export default function SearchPage() {
       )}
 
       {!isLoading && listings.length === 0 && !resultInfo && !error && (
-        <div className="text-center py-12 text-gray-500">
-          <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        <div style={{ textAlign: 'center', padding: '64px 0', color: '#6a6a7a' }}>
+          <svg width="64" height="64" fill="none" stroke="#3a3a4a" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <p>Введите запрос и нажмите «Найти»</p>
         </div>

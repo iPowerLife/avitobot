@@ -13,48 +13,77 @@ function formatPrice(price: number): string {
 export default function StatsPanel({ stats }: StatsPanelProps) {
   if (!stats) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <p className="text-gray-500 text-center">Загрузка статистики...</p>
+      <div className="card" style={{ padding: 24, marginBottom: 24 }}>
+        <p style={{ color: '#6a6a7a', textAlign: 'center' }}>Загрузка статистики...</p>
       </div>
     );
   }
 
-  const trendIcon = stats.trend === 'up' ? '📈' : stats.trend === 'down' ? '📉' : '➡️';
-  const trendText = stats.trend === 'up' ? 'Рост' : stats.trend === 'down' ? 'Снижение' : 'Стабильно';
-  const trendColor = stats.trend === 'up' ? 'text-red-600' : stats.trend === 'down' ? 'text-green-600' : 'text-gray-600';
+  const trendConfig = {
+    up: { icon: '📈', text: 'Рост', color: '#ef4444' },
+    down: { icon: '📉', text: 'Снижение', color: '#22c55e' },
+    stable: { icon: '➡️', text: 'Стабильно', color: '#a0a0b0' },
+  };
+
+  const trend = trendConfig[stats.trend] || trendConfig.stable;
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Статистика</h2>
+    <div className="card" style={{ padding: 24, marginBottom: 24 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 600, color: '#f0f0f5', marginBottom: 20 }}>Статистика</h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className="text-2xl font-bold text-blue-600">{stats.total_listings}</p>
-          <p className="text-sm text-gray-500">Объявлений</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+        <div style={{
+          textAlign: 'center',
+          padding: 16,
+          background: '#12121a',
+          borderRadius: 10,
+        }}>
+          <p style={{ fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{stats.total_listings}</p>
+          <p style={{ fontSize: 13, color: '#6a6a7a' }}>Объявлений</p>
         </div>
 
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className="text-2xl font-bold text-green-600">{formatPrice(stats.avg_price)}</p>
-          <p className="text-sm text-gray-500">Средняя цена</p>
+        <div style={{
+          textAlign: 'center',
+          padding: 16,
+          background: '#12121a',
+          borderRadius: 10,
+        }}>
+          <p style={{ fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{formatPrice(stats.avg_price)}</p>
+          <p style={{ fontSize: 13, color: '#6a6a7a' }}>Средняя цена</p>
         </div>
 
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className="text-2xl font-bold text-orange-600">{formatPrice(stats.median_price)}</p>
-          <p className="text-sm text-gray-500">Медиана</p>
+        <div style={{
+          textAlign: 'center',
+          padding: 16,
+          background: '#12121a',
+          borderRadius: 10,
+        }}>
+          <p style={{ fontSize: 28, fontWeight: 700, color: '#eab308' }}>{formatPrice(stats.median_price)}</p>
+          <p style={{ fontSize: 13, color: '#6a6a7a' }}>Медиана</p>
         </div>
 
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-500">Мин — Макс</p>
-          <p className="text-sm font-medium text-gray-700">
+        <div style={{
+          textAlign: 'center',
+          padding: 16,
+          background: '#12121a',
+          borderRadius: 10,
+        }}>
+          <p style={{ fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Мин — Макс</p>
+          <p style={{ fontSize: 14, fontWeight: 500, color: '#a0a0b0' }}>
             {formatPrice(stats.min_price)} — {formatPrice(stats.max_price)}
           </p>
         </div>
 
-        <div className="text-center p-3 bg-gray-50 rounded-lg">
-          <p className={`text-2xl font-bold ${trendColor}`}>
-            {trendIcon} {trendText}
+        <div style={{
+          textAlign: 'center',
+          padding: 16,
+          background: '#12121a',
+          borderRadius: 10,
+        }}>
+          <p style={{ fontSize: 28, fontWeight: 700, color: trend.color }}>
+            {trend.icon} {trend.text}
           </p>
-          <p className="text-sm text-gray-500">Тренд</p>
+          <p style={{ fontSize: 13, color: '#6a6a7a' }}>Тренд</p>
         </div>
       </div>
     </div>

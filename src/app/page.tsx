@@ -40,51 +40,42 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5', marginBottom: 8 }}>
           AvitoBot — Парсер объявлений
         </h1>
-        <p className="text-gray-600">
+        <p style={{ color: '#a0a0b0', fontSize: 16 }}>
           Парсинг, анализ и статистика объявлений Авито в одном месте
         </p>
       </div>
 
       <StatsPanel stats={stats} />
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Лучшие объявления</h2>
-        <Link
-          href="/listings"
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 600, color: '#f0f0f5' }}>Лучшие объявления</h2>
+        <Link href="/listings" style={{ color: '#3b82f6', fontSize: 14, textDecoration: 'none' }}>
           Смотреть все →
         </Link>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">
-          <svg className="animate-spin h-8 w-8 mx-auto mb-4 text-blue-600" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: '#6a6a7a' }}>
+          <div className="spinner" style={{ margin: '0 auto 16px' }} />
           Загрузка...
         </div>
       ) : listings.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-md p-12 text-center">
-          <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        <div className="card" style={{ padding: '64px 24px', textAlign: 'center' }}>
+          <svg width="64" height="64" fill="none" stroke="#3a3a4a" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
           </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Нет данных</h3>
-          <p className="text-gray-500 mb-4">Начните с поиска объявлений</p>
-          <Link
-            href="/search"
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
+          <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f0f0f5', marginBottom: 8 }}>Нет данных</h3>
+          <p style={{ color: '#6a6a7a', marginBottom: 24 }}>Начните с поиска объявлений</p>
+          <Link href="/search" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
             Перейти к поиску
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
           {listings.map((listing) => (
             <ListingCard
               key={listing.id || listing.avito_id}
@@ -95,44 +86,53 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link
-          href="/search"
-          className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div style={{ marginTop: 48, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+        <Link href="/search" className="card" style={{ padding: 24, textDecoration: 'none' }}>
+          <div style={{
+            width: 48, height: 48,
+            background: 'rgba(59, 130, 246, 0.1)',
+            borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 16,
+          }}>
+            <svg width="24" height="24" fill="none" stroke="#3b82f6" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
-          <h3 className="font-semibold text-gray-900">Поиск</h3>
-          <p className="text-sm text-gray-500">Найти объявления по запросу</p>
+          <h3 style={{ fontWeight: 600, color: '#f0f0f5', marginBottom: 4 }}>Поиск</h3>
+          <p style={{ fontSize: 14, color: '#6a6a7a' }}>Найти объявления по запросу</p>
         </Link>
 
-        <Link
-          href="/analytics"
-          className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <Link href="/analytics" className="card" style={{ padding: 24, textDecoration: 'none' }}>
+          <div style={{
+            width: 48, height: 48,
+            background: 'rgba(34, 197, 94, 0.1)',
+            borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 16,
+          }}>
+            <svg width="24" height="24" fill="none" stroke="#22c55e" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
           </div>
-          <h3 className="font-semibold text-gray-900">Аналитика</h3>
-          <p className="text-sm text-gray-500">Графики и тренды цен</p>
+          <h3 style={{ fontWeight: 600, color: '#f0f0f5', marginBottom: 4 }}>Аналитика</h3>
+          <p style={{ fontSize: 14, color: '#6a6a7a' }}>Графики и тренды цен</p>
         </Link>
 
-        <Link
-          href="/export"
-          className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-        >
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-3">
-            <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <Link href="/export" className="card" style={{ padding: 24, textDecoration: 'none' }}>
+          <div style={{
+            width: 48, height: 48,
+            background: 'rgba(168, 85, 247, 0.1)',
+            borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: 16,
+          }}>
+            <svg width="24" height="24" fill="none" stroke="#a855f7" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
-          <h3 className="font-semibold text-gray-900">Экспорт</h3>
-          <p className="text-sm text-gray-500">Скачать данные в CSV/JSON</p>
+          <h3 style={{ fontWeight: 600, color: '#f0f0f5', marginBottom: 4 }}>Экспорт</h3>
+          <p style={{ fontSize: 14, color: '#6a6a7a' }}>Скачать данные в CSV/JSON</p>
         </Link>
       </div>
     </div>

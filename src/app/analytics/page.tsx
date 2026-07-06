@@ -33,16 +33,16 @@ export default function AnalyticsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Аналитика</h1>
-      <p className="text-gray-600 mb-6">Статистика цен и тренды</p>
+      <h1 style={{ fontSize: 32, fontWeight: 700, color: '#f0f0f5', marginBottom: 8 }}>Аналитика</h1>
+      <p style={{ color: '#a0a0b0', marginBottom: 24 }}>Статистика цен и тренды</p>
 
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex flex-wrap gap-4 items-end">
+      <div className="card" style={{ padding: 16, marginBottom: 24, display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Период</label>
+          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Период</label>
           <select
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="select"
           >
             <option value="7d">7 дней</option>
             <option value="30d">30 дней</option>
@@ -52,77 +52,78 @@ export default function AnalyticsPage() {
         </div>
 
         <div>
-          <label className="block text-sm text-gray-600 mb-1">Город</label>
+          <label style={{ display: 'block', fontSize: 13, color: '#6a6a7a', marginBottom: 4 }}>Город</label>
           <input
             type="text"
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="Все города"
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            className="input"
+            style={{ width: 200 }}
           />
         </div>
 
-        <button
-          onClick={loadStats}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-        >
+        <button onClick={loadStats} className="btn-primary">
           Обновить
         </button>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">Загрузка...</div>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: '#6a6a7a' }}>
+          <div className="spinner" style={{ margin: '0 auto 16px' }} />
+          Загрузка...
+        </div>
       ) : (
         <>
           <StatsPanel stats={stats} />
 
           {stats?.price_history && stats.price_history.length > 0 && (
-            <div className="mt-6">
+            <div style={{ marginTop: 24 }}>
               <PriceChart data={stats.price_history} title="Динамика средней цены" />
             </div>
           )}
 
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Распределение цен</h3>
+          <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 20 }}>
+            <div className="card" style={{ padding: 24 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>Распределение цен</h3>
               {stats?.price_history && stats.price_history.length > 0 ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Минимум:</span>
-                    <span className="font-medium">{new Intl.NumberFormat('ru-RU').format((stats.min_price || 0) / 100)} ₽</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: '#6a6a7a' }}>Минимум:</span>
+                    <span style={{ fontWeight: 500, color: '#a0a0b0' }}>{new Intl.NumberFormat('ru-RU').format((stats.min_price || 0) / 100)} ₽</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Максимум:</span>
-                    <span className="font-medium">{new Intl.NumberFormat('ru-RU').format((stats.max_price || 0) / 100)} ₽</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: '#6a6a7a' }}>Максимум:</span>
+                    <span style={{ fontWeight: 500, color: '#a0a0b0' }}>{new Intl.NumberFormat('ru-RU').format((stats.max_price || 0) / 100)} ₽</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Средняя:</span>
-                    <span className="font-medium">{new Intl.NumberFormat('ru-RU').format((stats.avg_price || 0) / 100)} ₽</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: '#6a6a7a' }}>Средняя:</span>
+                    <span style={{ fontWeight: 500, color: '#a0a0b0' }}>{new Intl.NumberFormat('ru-RU').format((stats.avg_price || 0) / 100)} ₽</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Медиана:</span>
-                    <span className="font-medium">{new Intl.NumberFormat('ru-RU').format((stats.median_price || 0) / 100)} ₽</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
+                    <span style={{ color: '#6a6a7a' }}>Медиана:</span>
+                    <span style={{ fontWeight: 500, color: '#a0a0b0' }}>{new Intl.NumberFormat('ru-RU').format((stats.median_price || 0) / 100)} ₽</span>
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">Нет данных</p>
+                <p style={{ color: '#6a6a7a', textAlign: 'center', padding: '16px 0' }}>Нет данных</p>
               )}
             </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Рекомендации</h3>
-              <div className="space-y-3 text-sm">
+            <div className="card" style={{ padding: 24 }}>
+              <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>Рекомендации</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 14 }}>
                 {stats?.trend === 'up' && (
-                  <p className="text-red-600">📈 Цены растут — стоит рассмотреть повышение своих цен</p>
+                  <p style={{ color: '#ef4444' }}>📈 Цены растут — стоит рассмотреть повышение своих цен</p>
                 )}
                 {stats?.trend === 'down' && (
-                  <p className="text-green-600">📉 Цены снижаются — хорошее время для покупки</p>
+                  <p style={{ color: '#22c55e' }}>📉 Цены снижаются — хорошее время для покупки</p>
                 )}
                 {stats?.trend === 'stable' && (
-                  <p className="text-gray-600">➡️ Цены стабильны — рыночная ситуация предсказуема</p>
+                  <p style={{ color: '#a0a0b0' }}>➡️ Цены стабильны — рыночная ситуация предсказуема</p>
                 )}
                 {stats && stats.total_listings < 10 && (
-                  <p className="text-yellow-600">⚠️ Мало данных для анализа — попробуйте расширенный поиск</p>
+                  <p style={{ color: '#eab308' }}>⚠️ Мало данных для анализа — попробуйте расширенный поиск</p>
                 )}
               </div>
             </div>
