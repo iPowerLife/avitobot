@@ -4,6 +4,7 @@ import { useState } from 'react';
 import SearchForm from '@/components/SearchForm';
 import ListingCard from '@/components/ListingCard';
 import { Listing, SearchParams } from '@/lib/types';
+import { saveListings } from '@/lib/storage';
 
 export default function SearchPage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -36,9 +37,17 @@ export default function SearchPage() {
         updated: data.updated,
       });
 
-      // Use listings from response directly (works without DB)
-      if (data.listings && data.listings.length > 0) {
-        setListings(data.listings);
+      const resultListings = data.listings || [];
+
+      if (resultListings.length > 0) {
+        // Assign IDs for localStorage storage
+        const listingsWithIds = resultListings.map((l: Listing, i: number) => ({
+          ...l,
+          id: l.id || Date.now() + i,
+        }));
+        setListings(listingsWithIds);
+        // Save to localStorage for listings/analytics pages
+        saveListings(listingsWithIds);
       } else {
         // Fallback: fetch from database
         const listingsRes = await fetch(
@@ -86,7 +95,7 @@ export default function SearchPage() {
           marginBottom: 24,
         }}>
           <strong>Результат:</strong> Найдено {resultInfo.total} объявлений.{' '}
-          Новых: {resultInfo.new}, Обновлено: {resultInfo.updated}
+          Сохранено: {resultInfo.new + resultInfo.updated}
         </div>
       )}
 
@@ -95,12 +104,12 @@ export default function SearchPage() {
           <h2 style={{ fontSize: 20, fontWeight: 600, color: '#f0f0f5', marginBottom: 16 }}>
             Результаты ({listings.length})
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {listings.map((listing) => (
               <ListingCard
-                key={listing.id || listing.avito_id}
+                key={listing.avito_id || listing.id}
                 listing={listing}
-                onClick={() => listing.id ? window.location.href = `/listings/${listing.id}` : window.open(listing.url, '_blank')}
+                onClick={() => listing.url ? window.open(listing.url, '_blank') : null}
               />
             ))}
           </div>
@@ -108,8 +117,8 @@ export default function SearchPage() {
       )}
 
       {!isLoading && listings.length === 0 && !resultInfo && !error && (
-        <div style={{ textAlign: 'center', padding: '64px 0', color: '#6a6a7a' }}>
-          <svg width="64" height="64" fill="none" stroke="#3a3a4a" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
+        <div style={{ textAlign: 'center', padding: '64px 0', color: '#5a5a6a' }}>
+          <svg width="64" height="64" fill="none" stroke="#2a2a3a" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <p>Введите запрос и нажмите «Найти»</p>

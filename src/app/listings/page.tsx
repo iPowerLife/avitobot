@@ -3,29 +3,31 @@
 import { useEffect, useState } from 'react';
 import ListingCard from '@/components/ListingCard';
 import { Listing } from '@/lib/types';
+import { getListings, deleteListing, deleteAllListings } from '@/lib/storage';
 
 export default function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [filterCity, setFilterCity] = useState('');
   const [filterSort, setFilterSort] = useState('overall_score');
   const [filterSearch, setFilterSearch] = useState('');
+  const ITEMS_PER_PAGE = 50;
 
   useEffect(() => {
     loadListings();
-  }, [page, filterCity, filterSort]);
+  }, [page, filterCity, filterSort, filterSearch]);
 
   async function loadListings() {
     setIsLoading(true);
     try {
+      // Try Supabase first
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '50',
+        limit: ITEMS_PER_PAGE.toString(),
         sort: filterSort,
       });
       if (filterCity) params.set('city', filterCity);
@@ -34,11 +36,45 @@ export default function ListingsPage() {
       const res = await fetch(`/api/listings?${params}`);
       const data = await res.json();
 
-      setListings(data.listings || []);
-      setTotalPages(data.totalPages || 1);
-      setTotal(data.total || 0);
+      if (data.listings && data.listings.length > 0) {
+        setListings(data.listings);
+        setTotal(data.total || data.listings.length);
+      } else {
+        // Fallback to localStorage
+        let allListings = getListings();
+
+        // Apply filters
+        if (filterCity) {
+          allListings = allListings.filter((l) =>
+            l.city?.toLowerCase().includes(filterCity.toLowerCase())
+          );
+        }
+        if (filterSearch) {
+          const searchLower = filterSearch.toLowerCase();
+          allListings = allListings.filter((l) =>
+            l.title?.toLowerCase().includes(searchLower) ||
+            l.description?.toLowerCase().includes(searchLower)
+          );
+        }
+
+        // Sort
+        if (filterSort === 'price_asc') allListings.sort((a, b) => (a.price || 0) - (b.price || 0));
+        else if (filterSort === 'price_desc') allListings.sort((a, b) => (b.price || 0) - (a.price || 0));
+        else if (filterSort === 'overall_score') allListings.sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
+        else if (filterSort === 'views_count') allListings.sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
+        else allListings.sort((a, b) => (b.date_parsed || '').localeCompare(a.date_parsed || ''));
+
+        setTotal(allListings.length);
+        const from = (page - 1) * ITEMS_PER_PAGE;
+        setListings(allListings.slice(from, from + ITEMS_PER_PAGE));
+      }
     } catch (error) {
       console.error('Load error:', error);
+      // Fallback to localStorage on error
+      const allListings = getListings();
+      setTotal(allListings.length);
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      setListings(allListings.slice(from, from + ITEMS_PER_PAGE));
     } finally {
       setIsLoading(false);
     }
@@ -46,31 +82,32 @@ export default function ListingsPage() {
 
   async function handleDelete(id: number) {
     if (!confirm('Удалить объявление?')) return;
-
     try {
-      await fetch(`/api/listings?id=${id}`, { method: 'DELETE' });
-      setListings(listings.filter((l) => l.id !== id));
-      setTotal(total - 1);
+      await fetch(`/api/listings?id=${id}`, { method: 'DELETE' }).catch(() => {});
+      deleteListing(id);
+      loadListings();
     } catch (error) {
       console.error('Delete error:', error);
     }
   }
 
   async function handleDeleteAll() {
-    if (!confirm('Вы уверены, что хотите удалить ВСЕ объявления? Это действие необратимо!')) return;
+    if (!confirm('Удалить ВСЕ объявления? Это действие необратимо!')) return;
     setIsDeleting(true);
     try {
-      await fetch('/api/listings?all=true', { method: 'DELETE' });
+      await fetch('/api/listings?all=true', { method: 'DELETE' }).catch(() => {});
+      deleteAllListings();
       setListings([]);
       setTotal(0);
       setPage(1);
-      setTotalPages(1);
     } catch (error) {
       console.error('Delete all error:', error);
     } finally {
       setIsDeleting(false);
     }
   }
+
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE);
 
   return (
     <div>
@@ -103,7 +140,7 @@ export default function ListingsPage() {
           <input
             type="text"
             value={filterCity}
-            onChange={(e) => setFilterCity(e.target.value)}
+            onChange={(e) => { setFilterCity(e.target.value); setPage(1); }}
             placeholder="Фильтр по городу"
             className="input"
             style={{ width: 180 }}
@@ -115,7 +152,7 @@ export default function ListingsPage() {
           <input
             type="text"
             value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
+            onChange={(e) => { setFilterSearch(e.target.value); setPage(1); }}
             onKeyDown={(e) => e.key === 'Enter' && loadListings()}
             placeholder="Поиск по названию..."
             className="input"
@@ -127,7 +164,7 @@ export default function ListingsPage() {
           <label style={{ display: 'block', fontSize: 12, color: '#5a5a6a', marginBottom: 4 }}>Сортировка</label>
           <select
             value={filterSort}
-            onChange={(e) => setFilterSort(e.target.value)}
+            onChange={(e) => { setFilterSort(e.target.value); setPage(1); }}
             className="select"
           >
             <option value="overall_score">По оценке</option>
@@ -150,21 +187,25 @@ export default function ListingsPage() {
         </div>
       ) : listings.length === 0 ? (
         <div className="card" style={{ padding: '48px 24px', textAlign: 'center', color: '#5a5a6a' }}>
-          Объявления не найдены
+          <p style={{ fontSize: 16, marginBottom: 8 }}>Объявления не найдены</p>
+          <p style={{ fontSize: 13 }}>Начните с поиска на странице «Поиск»</p>
         </div>
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {listings.map((listing) => (
-              <div key={listing.id} style={{ position: 'relative' }}>
+              <div key={listing.id || listing.avito_id} style={{ position: 'relative' }}>
                 <ListingCard
                   listing={listing}
-                  onClick={() => window.location.href = `/listings/${listing.id}`}
+                  onClick={() => {
+                    if (listing.id) window.location.href = `/listings/${listing.id}`;
+                    else if (listing.url) window.open(listing.url, '_blank');
+                  }}
                 />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(listing.id!);
+                    handleDelete(listing.id || 0);
                   }}
                   style={{
                     position: 'absolute',
